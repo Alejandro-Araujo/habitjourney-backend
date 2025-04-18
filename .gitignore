@@ -1,3 +1,4 @@
+HELP.md
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -10,8 +11,44 @@ buildNumber.properties
 # https://github.com/takari/maven-wrapper#usage-without-binary-jar
 .mvn/wrapper/maven-wrapper.jar
 
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
 # Eclipse m2e generated files
-# Eclipse Core
 .project
-# JDT-specific (Eclipse Java Development Tools)
 .classpath
+.settings/
+.factorypath
+# STS (Spring Tool Suite)
+.sts4-cache/
+.springBeans
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# Archivos temporales o generados
+*.log
+*.class
+*.jar
+*.war
+*.zip
+*.tar.gz
+*.rar
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
