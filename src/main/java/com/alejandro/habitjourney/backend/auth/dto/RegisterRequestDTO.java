@@ -1,4 +1,4 @@
-package com.alejandro.habitjourney.backend.user.dto;
+package com.alejandro.habitjourney.backend.auth.dto;
 
 
 import jakarta.validation.constraints.Email;

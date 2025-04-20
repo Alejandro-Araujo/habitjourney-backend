@@ -1,7 +1,7 @@
 package com.alejandro.habitjourney.backend.user.mapper;
 
 
-import com.alejandro.habitjourney.backend.user.dto.RegisterRequestDTO;
+import com.alejandro.habitjourney.backend.auth.dto.RegisterRequestDTO;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
 import com.alejandro.habitjourney.backend.user.model.User;
 import org.mapstruct.Mapper;

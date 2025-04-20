@@ -1,10 +1,10 @@
 package com.alejandro.habitjourney.backend.user.service;
 
-import com.alejandro.habitjourney.backend.common.exception.EmailAlreadyExistsException;
 import com.alejandro.habitjourney.backend.common.exception.InvalidCredentialsException;
+import com.alejandro.habitjourney.backend.common.exception.InvalidPasswordException;
 import com.alejandro.habitjourney.backend.common.exception.UserNotFoundException;
+import com.alejandro.habitjourney.backend.common.util.ValidationUtils;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
-import com.alejandro.habitjourney.backend.user.dto.RegisterRequestDTO;
 import com.alejandro.habitjourney.backend.user.mapper.UserMapper;
 import com.alejandro.habitjourney.backend.user.model.User;
 import com.alejandro.habitjourney.backend.user.repository.UserRepository;
@@ -39,21 +39,6 @@ public class UserService {
     }
 
     @Transactional
-    public UserDTO registerUser(RegisterRequestDTO registerRequestDTO) {
-
-        if (userRepository.existsByEmail(registerRequestDTO.getEmail())) {
-            throw new EmailAlreadyExistsException("El email ya está en uso");
-        }
-
-        User user = new User();
-        user.setName(registerRequestDTO.getName());
-        user.setEmail(registerRequestDTO.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(registerRequestDTO.getPassword()));
-        user = userRepository.save(user);
-        return userMapper.userToUserDTO(user);
-    }
-
-    @Transactional
     public UserDTO updateUser (Long id, UserDTO updateUserDTO) {
 
         User user = userRepository.findById(id)
@@ -81,40 +66,13 @@ public class UserService {
             throw new InvalidCredentialsException("La contraseña actual es incorrecta");
         }
 
-        validatePassword(newPassword);
+        String passwordValidation = ValidationUtils.validatePassword(newPassword);
+        if (passwordValidation != null) {
+            throw new InvalidPasswordException(passwordValidation);
+        }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 
-    public boolean validatePassword(String password) {
-        if (password == null) {
-            return false;
-        }
-
-        // Verificar longitud
-        if (password.length() < 6 || password.length() > 32) {
-            return false;
-        }
-
-        // Patrones para cada requisito
-        boolean hasUpperCase = false;
-        boolean hasLowerCase = false;
-        boolean hasDigit = false;
-        boolean hasSpecialChar = false;
-
-        for (char c : password.toCharArray()) {
-            if (Character.isUpperCase(c)) {
-                hasUpperCase = true;
-            } else if (Character.isLowerCase(c)) {
-                hasLowerCase = true;
-            } else if (Character.isDigit(c)) {
-                hasDigit = true;
-            } else {
-                hasSpecialChar = true;
-            }
-        }
-
-        return hasUpperCase && hasLowerCase && hasDigit && hasSpecialChar;
-    }
 }
