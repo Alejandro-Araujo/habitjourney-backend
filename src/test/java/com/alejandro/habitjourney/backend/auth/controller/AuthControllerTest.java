@@ -5,6 +5,7 @@ import com.alejandro.habitjourney.backend.auth.service.AuthService;
 import com.alejandro.habitjourney.backend.common.config.SecurityTestConfig;
 import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
 import com.alejandro.habitjourney.backend.common.exception.*;
+import com.alejandro.habitjourney.backend.user.controller.UserControllerTestConfig;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -26,9 +28,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 
-@Import({SecurityTestConfig.class})
-@WebMvcTest(controllers = AuthController.class)
-@ComponentScan(basePackages = "com.alejandro.habitjourney.backend.auth.controller")
+@ContextConfiguration(classes = {SecurityTestConfig.class, AuthControllerTestConfig.class})
+@WebMvcTest
 class AuthControllerTest {
 
     @Autowired
@@ -36,9 +37,6 @@ class AuthControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private AuthController authController; //
 
     @MockitoBean
     private AuthService authService;
@@ -59,9 +57,7 @@ class AuthControllerTest {
         registerResponseDTO = new RegisterResponseDTO("Usuario registrado con éxito", testUserDTO);
         loginResponseDTO = new LoginResponseDTO("Login exitoso", "jwt-token", testUserDTO);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(authController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+
     }
 
     @Test

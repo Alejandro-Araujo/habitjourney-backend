@@ -38,8 +38,4 @@ public class SecurityTestConfig {
         return new GlobalExceptionHandler();
     }
 
-    @Bean
-    public UserController userController(UserService userService) {
-        return new UserController(userService);
-    }
 }

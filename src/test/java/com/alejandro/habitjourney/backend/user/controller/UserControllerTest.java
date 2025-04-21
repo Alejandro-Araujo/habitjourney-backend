@@ -1,20 +1,16 @@
     package com.alejandro.habitjourney.backend.user.controller;
 
     import com.alejandro.habitjourney.backend.common.config.SecurityTestConfig;
-    import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
     import com.alejandro.habitjourney.backend.common.exception.*;
     import com.alejandro.habitjourney.backend.common.security.UserDetailsImpl;
     import com.alejandro.habitjourney.backend.user.dto.PasswordChangeDTO;
     import com.alejandro.habitjourney.backend.user.dto.UserDTO;
-    import com.alejandro.habitjourney.backend.user.dto.UserResponseDTO;
     import com.alejandro.habitjourney.backend.user.service.UserService;
     import com.fasterxml.jackson.databind.ObjectMapper;
     import org.junit.jupiter.api.BeforeEach;
     import org.junit.jupiter.api.Test;
     import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-    import org.springframework.context.annotation.ComponentScan;
-    import org.springframework.context.annotation.Import;
     import org.springframework.http.MediaType;
     import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
     import org.springframework.security.core.Authentication;
@@ -23,8 +19,6 @@
     import org.springframework.test.context.ContextConfiguration;
     import org.springframework.test.context.bean.override.mockito.MockitoBean;
     import org.springframework.test.web.servlet.MockMvc;
-    import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-    import org.springframework.web.context.WebApplicationContext;
 
     import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -34,13 +28,11 @@
     import static org.mockito.ArgumentMatchers.*;
     import static org.mockito.Mockito.*;
     import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
-    import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-    import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
     import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
     import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-    @WebMvcTest // No especificamos controllers aquí
-    @ContextConfiguration(classes = com.alejandro.habitjourney.backend.common.config.SecurityTestConfig.class)
+    @WebMvcTest
+    @ContextConfiguration(classes = {SecurityTestConfig.class, UserControllerTestConfig.class})
     class UserControllerTest {
 
         @Autowired
