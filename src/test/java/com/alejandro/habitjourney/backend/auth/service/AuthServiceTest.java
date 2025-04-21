@@ -1,7 +1,9 @@
 package com.alejandro.habitjourney.backend.auth.service;
 
 import com.alejandro.habitjourney.backend.auth.dto.LoginRequestDTO;
+import com.alejandro.habitjourney.backend.auth.dto.LoginResponseDTO;
 import com.alejandro.habitjourney.backend.auth.dto.RegisterRequestDTO;
+import com.alejandro.habitjourney.backend.auth.dto.RegisterResponseDTO;
 import com.alejandro.habitjourney.backend.common.exception.*;
 import com.alejandro.habitjourney.backend.common.security.JwtUtil;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
@@ -103,13 +105,15 @@ class AuthServiceTest {
         when(userMapper.userToUserDTO(any(User.class))).thenReturn(testUserDTO);
 
         // Act
-        UserDTO result = authService.registerUser(validRegisterRequest);
+        RegisterResponseDTO result = authService.registerUser(validRegisterRequest);
 
         // Assert
         assertNotNull(result);
-        assertEquals(testUserDTO.getId(), result.getId());
-        assertEquals(testUserDTO.getName(), result.getName());
-        assertEquals(testUserDTO.getEmail(), result.getEmail());
+        assertEquals("Usuario registrado con éxito", result.getMessage());
+        assertNotNull(result.getUser());
+        assertEquals(testUserDTO.getId(), result.getUser().getId());
+        assertEquals(testUserDTO.getName(), result.getUser().getName());
+        assertEquals(testUserDTO.getEmail(), result.getUser().getEmail());
 
         verify(userRepository).existsByEmail(validRegisterRequest.getEmail());
         verify(passwordEncoder).encode(validRegisterRequest.getPassword());
@@ -202,12 +206,13 @@ class AuthServiceTest {
         when(userMapper.userToUserDTO(testUser)).thenReturn(testUserDTO);
 
         // Act
-        Map<String, Object> result = authService.authenticateUser(validLoginRequest);
+        LoginResponseDTO result = authService.authenticateUser(validLoginRequest);
 
         // Assert
         assertNotNull(result);
-        assertEquals("jwt-token", result.get("token"));
-        assertEquals(testUserDTO, result.get("user"));
+        assertEquals("Login exitoso", result.getMessage());
+        assertEquals("jwt-token", result.getToken());
+        assertEquals(testUserDTO, result.getUser());
 
         verify(authenticationManager).authenticate(
                 argThat(auth ->
