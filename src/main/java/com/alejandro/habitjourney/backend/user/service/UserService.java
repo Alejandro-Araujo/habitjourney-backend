@@ -1,5 +1,6 @@
 package com.alejandro.habitjourney.backend.user.service;
 
+import com.alejandro.habitjourney.backend.common.exception.EmailAlreadyExistsException;
 import com.alejandro.habitjourney.backend.common.exception.InvalidCredentialsException;
 import com.alejandro.habitjourney.backend.common.exception.InvalidPasswordException;
 import com.alejandro.habitjourney.backend.common.exception.UserNotFoundException;
@@ -43,6 +44,12 @@ public class UserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+
+        if (!user.getEmail().equals(updateUserDTO.getEmail()) &&
+                userRepository.existsByEmail(updateUserDTO.getEmail())) {
+            throw new EmailAlreadyExistsException("Ya existe un usuario con este correo electrónico");
+        }
+
         user.setName(updateUserDTO.getName());
         user.setEmail(updateUserDTO.getEmail());
         user = userRepository.save(user);
@@ -73,6 +80,12 @@ public class UserService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+    }
+
+    public UserDTO getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+        return userMapper.userToUserDTO(user);
     }
 
 }

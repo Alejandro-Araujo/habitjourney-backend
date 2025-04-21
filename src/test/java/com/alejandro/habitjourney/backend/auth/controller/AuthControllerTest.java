@@ -2,41 +2,34 @@ package com.alejandro.habitjourney.backend.auth.controller;
 
 import com.alejandro.habitjourney.backend.auth.dto.*;
 import com.alejandro.habitjourney.backend.auth.service.AuthService;
-import com.alejandro.habitjourney.backend.common.config.SecurityConfig;
 import com.alejandro.habitjourney.backend.common.config.SecurityTestConfig;
 import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
 import com.alejandro.habitjourney.backend.common.exception.*;
+import com.alejandro.habitjourney.backend.user.controller.UserControllerTestConfig;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
-@Import({SecurityTestConfig.class})
-@WebMvcTest(controllers = AuthController.class)
-@ComponentScan(basePackages = "com.alejandro.habitjourney.backend.auth.controller")
+@ContextConfiguration(classes = {SecurityTestConfig.class, AuthControllerTestConfig.class})
+@WebMvcTest
 class AuthControllerTest {
 
     @Autowired
@@ -44,9 +37,6 @@ class AuthControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private AuthController authController; //
 
     @MockitoBean
     private AuthService authService;
@@ -67,9 +57,7 @@ class AuthControllerTest {
         registerResponseDTO = new RegisterResponseDTO("Usuario registrado con éxito", testUserDTO);
         loginResponseDTO = new LoginResponseDTO("Login exitoso", "jwt-token", testUserDTO);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(authController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+
     }
 
     @Test
