@@ -1,6 +1,8 @@
 package com.alejandro.habitjourney.backend.auth.service;
 
 
+import com.alejandro.habitjourney.backend.auth.dto.LoginResponseDTO;
+import com.alejandro.habitjourney.backend.auth.dto.RegisterResponseDTO;
 import com.alejandro.habitjourney.backend.common.exception.*;
 import com.alejandro.habitjourney.backend.common.security.JwtUtil;
 import com.alejandro.habitjourney.backend.common.util.ValidationUtils;
@@ -33,8 +35,8 @@ public class AuthService {
     private final UserMapper userMapper;
 
     @Transactional
-    public UserDTO registerUser(RegisterRequestDTO registerRequestDTO) {
-
+    public RegisterResponseDTO registerUser(RegisterRequestDTO registerRequestDTO) {
+        // Validaciones
         String emailValidation = ValidationUtils.validateEmail(registerRequestDTO.getEmail());
         if (emailValidation != null) {
             throw new InvalidCredentialsException(emailValidation);
@@ -54,31 +56,42 @@ public class AuthService {
             throw new InvalidNameException(nameValidation);
         }
 
+        // Crear y guardar usuario
         User user = new User();
         user.setName(registerRequestDTO.getName());
         user.setEmail(registerRequestDTO.getEmail());
         user.setPasswordHash(passwordEncoder.encode(registerRequestDTO.getPassword()));
         user = userRepository.save(user);
-        return userMapper.userToUserDTO(user);
+        UserDTO userDTO = userMapper.userToUserDTO(user);
+
+        // Retornar DTO de respuesta
+        return RegisterResponseDTO.builder()
+                .message("Usuario registrado con éxito")
+                .user(userDTO)
+                .build();
     }
 
-    public Map<String, Object> authenticateUser(LoginRequestDTO loginRequestDTO) {
+    public LoginResponseDTO authenticateUser(LoginRequestDTO loginRequestDTO) {
 
+        // Autenticar usuario
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(), loginRequestDTO.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        // Buscar usuario
         User user = userRepository.findByEmail(loginRequestDTO.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
 
+        // Generar token
         String token = jwtUtil.generateAccessToken(authentication);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", token);
-        response.put("user", userMapper.userToUserDTO(user));
-
-        return response;
+        // Retornar DTO de respuesta
+        return LoginResponseDTO.builder()
+                .message("Login exitoso")
+                .token(token)
+                .user(userMapper.userToUserDTO(user))
+                .build();
     }
 
     public User getAuthenticatedUser() {
