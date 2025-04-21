@@ -7,6 +7,7 @@ import com.alejandro.habitjourney.backend.user.dto.UserDTO;
 import com.alejandro.habitjourney.backend.user.mapper.UserMapper;
 import com.alejandro.habitjourney.backend.user.model.User;
 import com.alejandro.habitjourney.backend.user.repository.UserRepository;
+import com.alejandro.habitjourney.backend.common.util.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+/**
+ * Pruebas unitarias para la clase de servicio {@link UserService}.
+ * Se enfoca en verificar la lógica de negocio relacionada con
+ * la gestión de usuarios (CRUD y cambio de contraseña), interactuando
+ * con sus dependencias mockeadas (repositorio, encoder).
+ */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
@@ -50,35 +57,23 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Configurar datos de prueba
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setName("Test User");
-        testUser.setEmail("test@example.com");
-        testUser.setPasswordHash("hashedPassword");
-
-        testUserDTO = new UserDTO();
-        testUserDTO.setId(1L);
-        testUserDTO.setName("Test User");
-        testUserDTO.setEmail("test@example.com");
-
-        testRegisterDTO = new RegisterRequestDTO();
-        testRegisterDTO.setName("New User");
-        testRegisterDTO.setEmail("new@example.com");
-        testRegisterDTO.setPassword("Password123!");
+        // Arrange - Usar TestDataFactory
+        testUser = TestDataFactory.createTestUser();
+        testUserDTO = TestDataFactory.createTestUserDTO();
+        testRegisterDTO = TestDataFactory.createValidRegisterRequest();
     }
 
     @Test
-    void getAllUsers_ShouldReturnAllUsers() {
-        // Configurar mock
+    void givenUsersExist_whenGetAllUsers_thenReturnsListOfUserDTOs() {
+        // Arrange
         List<User> users = Arrays.asList(testUser);
         when(userRepository.findAll()).thenReturn(users);
         when(userMapper.userToUserDTO(testUser)).thenReturn(testUserDTO);
 
-        // Ejecutar metodo a probar
+        // Act
         List<UserDTO> result = userService.getAllUsers();
 
-        // Verificar resultado
+        // Assert
         assertEquals(1, result.size());
         assertEquals(testUserDTO, result.get(0));
         verify(userRepository).findAll();
@@ -86,26 +81,26 @@ class UserServiceTest {
     }
 
     @Test
-    void getUserById_WhenUserExists_ShouldReturnUser() {
-        // Configurar mock
+    void givenExistingUserId_whenGetUserById_thenReturnsUserDTO() {
+        // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(userMapper.userToUserDTO(testUser)).thenReturn(testUserDTO);
 
-        // Ejecutar método a probar
+        // Act
         UserDTO result = userService.getUserById(1L);
 
-        // Verificar resultado
+        // Assert
         assertEquals(testUserDTO, result);
         verify(userRepository).findById(1L);
         verify(userMapper).userToUserDTO(testUser);
     }
 
     @Test
-    void getUserById_WhenUserNotExists_ShouldThrowException() {
-        // Configurar mock
+    void givenNonExistentUserId_whenGetUserById_thenThrowsUserNotFoundException() {
+        // Arrange
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // Verificar que se lanza la excepción correcta
+        // Act & Assert
         UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
             userService.getUserById(999L);
         });
@@ -114,24 +109,20 @@ class UserServiceTest {
         verify(userRepository).findById(999L);
     }
 
-
     @Test
-    void updateUser_WhenUserExists_ShouldUpdateUser() {
-        // Configurar mocks
+    void givenExistingUserAndValidUpdateData_whenUpdateUser_thenUpdatesUserAndReturnsUserDTO() {
+        // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userRepository.save(userCaptor.capture())).thenReturn(testUser); // Capturamos el User antes de retornar el mock
+        when(userRepository.save(userCaptor.capture())).thenReturn(testUser);
         when(userMapper.userToUserDTO(any(User.class))).thenReturn(testUserDTO);
 
         // Modificar DTO para actualización
-        UserDTO updateDTO = new UserDTO();
-        updateDTO.setId(1L);
-        updateDTO.setName("Updated Name");
-        updateDTO.setEmail("updated@example.com");
+        UserDTO updateDTO = TestDataFactory.createUpdatedUserDTO();
 
-        // Ejecutar método a probar
+        // Act
         UserDTO result = userService.updateUser(1L, updateDTO);
 
-        // Verificar resultado
+        // Assert
         assertNotNull(result);
         assertEquals(testUserDTO, result);
         verify(userRepository).findById(1L);
@@ -143,15 +134,14 @@ class UserServiceTest {
         assertEquals(updateDTO.getName(), savedUser.getName());
         assertEquals(updateDTO.getEmail(), savedUser.getEmail());
         assertEquals("hashedPassword", savedUser.getPasswordHash()); // Aseguramos que la contraseña NO se modificó
-
     }
 
     @Test
-    void updateUser_WhenUserNotExists_ShouldThrowException() {
-        // Configurar mock
+    void givenNonExistentUserId_whenUpdateUser_thenThrowsUserNotFoundException() {
+        // Arrange
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // Verificar que se lanza la excepción correcta
+        // Act & Assert
         UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
             userService.updateUser(999L, testUserDTO);
         });
@@ -162,25 +152,25 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteUser_WhenUserExists_ShouldDeleteUser() {
-        // Configurar mock
+    void givenExistingUserId_whenDeleteUser_thenDeletesUser() {
+        // Arrange
         when(userRepository.existsById(1L)).thenReturn(true);
         doNothing().when(userRepository).deleteById(1L);
 
-        // Ejecutar método a probar
+        // Act
         userService.deleteUser(1L);
 
-        // Verificar que se llamó al repositorio
+        // Assert
         verify(userRepository).existsById(1L);
         verify(userRepository).deleteById(1L);
     }
 
     @Test
-    void deleteUser_WhenUserNotExists_ShouldThrowException() {
-        // Configurar mock
+    void givenNonExistentUserId_whenDeleteUser_thenThrowsUserNotFoundException() {
+        // Arrange
         when(userRepository.existsById(999L)).thenReturn(false);
 
-        // Verificar que se lanza la excepción correcta
+        // Act & Assert
         UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
             userService.deleteUser(999L);
         });
@@ -191,29 +181,29 @@ class UserServiceTest {
     }
 
     @Test
-    void changePassword_WhenValidCredentials_ShouldChangePassword() {
-        // Configurar mocks
+    void givenExistingUserAndCorrectCurrentPassword_whenChangePassword_thenChangesPasswordSuccessfully() {
+        // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(eq("currentPassword"), eq("hashedPassword"))).thenReturn(true);
-        when(passwordEncoder.encode(eq("NewPassword123!"))).thenReturn("anyEncodedPassword"); // No nos importa el valor exacto
+        when(passwordEncoder.encode(eq("NewPassword123!"))).thenReturn("newEncodedPassword");
 
-        // Ejecutar método a probar
+        // Act
         userService.changePassword(1L, "currentPassword", "NewPassword123!");
 
-        // Verificar interacciones
+        // Assert
         verify(userRepository).findById(1L);
         verify(passwordEncoder).matches(eq("currentPassword"), eq("hashedPassword"));
         verify(passwordEncoder).encode(eq("NewPassword123!"));
-        verify(userRepository).save(any(User.class)); // Verificamos que se llamó save con CUALQUIER User
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void changePassword_WhenIncorrectCurrentPassword_ShouldThrowException() {
-        // Configurar mocks
+    void givenExistingUserAndIncorrectCurrentPassword_whenChangePassword_thenThrowsInvalidCredentialsException() {
+        // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
-        // Verificar que se lanza la excepción correcta
+        // Act & Assert
         InvalidCredentialsException exception = assertThrows(InvalidCredentialsException.class, () -> {
             userService.changePassword(1L, "wrongPassword", "NewPassword123!");
         });
@@ -223,5 +213,4 @@ class UserServiceTest {
         verify(passwordEncoder).matches("wrongPassword", testUser.getPasswordHash());
         verify(userRepository, never()).save(any(User.class));
     }
-
 }
