@@ -5,32 +5,36 @@ import com.alejandro.habitjourney.backend.auth.service.AuthService;
 import com.alejandro.habitjourney.backend.common.config.SecurityTestConfig;
 import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
 import com.alejandro.habitjourney.backend.common.exception.*;
-import com.alejandro.habitjourney.backend.user.controller.UserControllerTestConfig;
+import com.alejandro.habitjourney.backend.common.config.TestConfig;
+import com.alejandro.habitjourney.backend.common.util.TestDataFactory;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
+/**
+ * Pruebas de slice (@WebMvcTest) para la clase de controlador {@link AuthController}.
+ * Se enfoca en verificar el manejo de las solicitudes HTTP,
+ * las respuestas y la correcta integración con el servicio {@link AuthService} (mockeado)
+ * para los endpoints de autenticación (registro y login).
+ * Configura un contexto mínimo de Spring MVC para las pruebas.
+ */
 @ContextConfiguration(classes = {SecurityTestConfig.class, AuthControllerTestConfig.class})
 @WebMvcTest
-class AuthControllerTest {
+class AuthControllerTest extends TestConfig {
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,21 +53,21 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        validRegisterRequest = new RegisterRequestDTO("Test User", "test@example.com", "Valid1Password!");
-        validLoginRequest = new LoginRequestDTO("test@example.com", "Valid1Password!");
-
-        testUserDTO = new UserDTO(1L, "Test User", "test@example.com");
+        // Arrange - Usar TestDataFactory
+        validRegisterRequest = TestDataFactory.createValidRegisterRequest();
+        validLoginRequest = TestDataFactory.createValidLoginRequest();
+        testUserDTO = TestDataFactory.createTestUserDTO();
 
         registerResponseDTO = new RegisterResponseDTO("Usuario registrado con éxito", testUserDTO);
         loginResponseDTO = new LoginResponseDTO("Login exitoso", "jwt-token", testUserDTO);
-
-
     }
 
     @Test
-    void registerUser_WithValidData_ShouldReturnCreatedStatus() throws Exception {
+    void givenValidRegisterRequest_whenRegister_thenReturnsCreated() throws Exception {
+        // Arrange
         when(authService.registerUser(any(RegisterRequestDTO.class))).thenReturn(registerResponseDTO);
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
@@ -75,10 +79,12 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerUser_WithExistingEmail_ShouldReturnBadRequest() throws Exception {
+    void givenExistingEmail_whenRegister_thenReturnsBadRequest() throws Exception {
+        // Arrange
         when(authService.registerUser(any(RegisterRequestDTO.class)))
                 .thenThrow(new EmailAlreadyExistsException(ErrorMessages.EMAIL_EXISTS));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
@@ -90,10 +96,12 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerUser_WithInvalidPassword_ShouldReturnBadRequest() throws Exception {
+    void givenInvalidPassword_whenRegister_thenReturnsBadRequest() throws Exception {
+        // Arrange
         when(authService.registerUser(any(RegisterRequestDTO.class)))
                 .thenThrow(new InvalidPasswordException(ErrorMessages.INVALID_PASSWORD));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
@@ -105,10 +113,12 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerUser_WithInvalidName_ShouldReturnBadRequest() throws Exception {
+    void givenInvalidName_whenRegister_thenReturnsBadRequest() throws Exception {
+        // Arrange
         when(authService.registerUser(any(RegisterRequestDTO.class)))
                 .thenThrow(new InvalidNameException(ErrorMessages.INVALID_NAME));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
@@ -120,10 +130,12 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerUser_WithInvalidCredentials_ShouldReturnBadRequest() throws Exception {
+    void givenInvalidEmail_whenRegister_thenReturnsBadRequest() throws Exception {
+        // Arrange
         when(authService.registerUser(any(RegisterRequestDTO.class)))
                 .thenThrow(new InvalidCredentialsException("El email no es válido"));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
@@ -135,9 +147,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerUser_WithInvalidData_ShouldReturnBadRequest() throws Exception {
-        RegisterRequestDTO invalidRequest = new RegisterRequestDTO("", "invalid-email", "weak");
+    void givenInvalidRegisterRequest_whenRegister_thenReturnsValidationErrors() throws Exception {
+        // Arrange
+        RegisterRequestDTO invalidRequest = TestDataFactory.createInvalidRegisterRequest();
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
@@ -151,9 +165,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginUser_WithValidCredentials_ShouldReturnOkStatus() throws Exception {
+    void givenValidLoginRequest_whenLogin_thenReturnsOk() throws Exception {
+        // Arrange
         when(authService.authenticateUser(any(LoginRequestDTO.class))).thenReturn(loginResponseDTO);
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
@@ -166,10 +182,12 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginUser_WithBadCredentials_ShouldReturnUnauthorized() throws Exception {
+    void givenWrongPassword_whenLogin_thenReturnsUnauthorized() throws Exception {
+        // Arrange
         when(authService.authenticateUser(any(LoginRequestDTO.class)))
                 .thenThrow(new BadCredentialsException("Credenciales inválidas"));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
@@ -181,10 +199,12 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginUser_WithUserNotFound_ShouldReturnNotFound() throws Exception {
+    void givenNonExistentUser_whenLogin_thenReturnsNotFound() throws Exception {
+        // Arrange
         when(authService.authenticateUser(any(LoginRequestDTO.class)))
                 .thenThrow(new UserNotFoundException(ErrorMessages.USER_NOT_FOUND));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
@@ -196,9 +216,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginUser_WithInvalidData_ShouldReturnBadRequest() throws Exception {
-        LoginRequestDTO invalidRequest = new LoginRequestDTO("bad-email", "");
+    void givenInvalidLoginRequest_whenLogin_thenReturnsValidationErrors() throws Exception {
+        // Arrange
+        LoginRequestDTO invalidRequest = TestDataFactory.createInvalidLoginRequest();
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))

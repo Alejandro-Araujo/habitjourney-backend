@@ -1,11 +1,14 @@
 package com.alejandro.habitjourney.backend.auth.service;
 
+
 import com.alejandro.habitjourney.backend.auth.dto.LoginRequestDTO;
 import com.alejandro.habitjourney.backend.auth.dto.LoginResponseDTO;
 import com.alejandro.habitjourney.backend.auth.dto.RegisterRequestDTO;
 import com.alejandro.habitjourney.backend.auth.dto.RegisterResponseDTO;
 import com.alejandro.habitjourney.backend.common.exception.*;
 import com.alejandro.habitjourney.backend.common.security.JwtUtil;
+import com.alejandro.habitjourney.backend.common.config.TestConfig;
+import com.alejandro.habitjourney.backend.common.util.TestDataFactory;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
 import com.alejandro.habitjourney.backend.user.mapper.UserMapper;
 import com.alejandro.habitjourney.backend.user.model.User;
@@ -27,15 +30,20 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Pruebas unitarias para la clase de servicio {@link AuthService}.
+ * Se enfoca en verificar la lógica de negocio relacionada con
+ * el registro y la autenticación de usuarios, interactuando
+ * con sus dependencias mockeadas (repositorios, encoders, etc.).
+ */
 @ExtendWith(MockitoExtension.class)
-class AuthServiceTest {
+class AuthServiceTest extends TestConfig {
 
     @Mock
     private AuthenticationManager authenticationManager;
@@ -71,33 +79,15 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Configurar datos de prueba para registro
-        validRegisterRequest = new RegisterRequestDTO();
-        validRegisterRequest.setName("Test User");
-        validRegisterRequest.setEmail("test@example.com");
-        validRegisterRequest.setPassword("Valid1Password!");
-
-        // Configurar datos de prueba para login
-        validLoginRequest = new LoginRequestDTO();
-        validLoginRequest.setEmail("test@example.com");
-        validLoginRequest.setPassword("Valid1Password!");
-
-        // Configurar usuario de prueba
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setName("Test User");
-        testUser.setEmail("test@example.com");
-        testUser.setPasswordHash("hashedPassword");
-
-        // Configurar DTO de usuario
-        testUserDTO = new UserDTO();
-        testUserDTO.setId(1L);
-        testUserDTO.setName("Test User");
-        testUserDTO.setEmail("test@example.com");
+        // Arrange - Usar TestDataFactory
+        validRegisterRequest = TestDataFactory.createValidRegisterRequest();
+        validLoginRequest = TestDataFactory.createValidLoginRequest();
+        testUser = TestDataFactory.createTestUser();
+        testUserDTO = TestDataFactory.createTestUserDTO();
     }
 
     @Test
-    void registerUser_WithValidData_ShouldRegisterSuccessfully() {
+    void givenValidRegisterRequest_whenRegisterUser_thenRegistersSuccessfullyAndReturnsUser() {
         // Arrange
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("hashedPassword");
@@ -126,7 +116,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void registerUser_WithExistingEmail_ShouldThrowException() {
+    void givenExistingEmail_whenRegisterUser_thenThrowsEmailAlreadyExistsException() {
         // Arrange
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
@@ -142,7 +132,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void registerUser_WithInvalidEmail_ShouldThrowException() {
+    void givenInvalidEmailFormat_whenRegisterUser_thenThrowsInvalidCredentialsException() {
         // Arrange
         RegisterRequestDTO invalidEmailRequest = new RegisterRequestDTO();
         invalidEmailRequest.setName("Test User");
@@ -160,7 +150,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void registerUser_WithInvalidPassword_ShouldThrowException() {
+    void givenInvalidPasswordFormat_whenRegisterUser_thenThrowsInvalidPasswordException() {
         // Arrange
         RegisterRequestDTO invalidPasswordRequest = new RegisterRequestDTO();
         invalidPasswordRequest.setName("Test User");
@@ -178,7 +168,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void registerUser_WithEmptyName_ShouldThrowException() {
+    void givenEmptyName_whenRegisterUser_thenThrowsInvalidNameException() {
         // Arrange
         RegisterRequestDTO emptyNameRequest = new RegisterRequestDTO();
         emptyNameRequest.setName("");
@@ -196,7 +186,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void authenticateUser_WithValidCredentials_ShouldReturnTokenAndUser() {
+    void givenValidLoginRequest_whenAuthenticateUser_thenReturnsTokenAndUser() {
         // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
@@ -226,7 +216,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void authenticateUser_WithInvalidCredentials_ShouldThrowException() {
+    void givenInvalidCredentials_whenAuthenticateUser_thenThrowsBadCredentialsException() {
         // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException("Credenciales inválidas"));
@@ -243,7 +233,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void authenticateUser_UserNotFound_ShouldThrowException() {
+    void givenLoginRequestForNonExistentUser_whenAuthenticateUser_thenThrowsUserNotFoundException() {
         // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
@@ -262,7 +252,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void getAuthenticatedUser_WhenUserExists_ShouldReturnUser() {
+    void givenAuthenticatedUserExists_whenGetAuthenticatedUser_thenReturnsUser() {
         // Arrange
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn("test@example.com");
@@ -286,7 +276,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void getAuthenticatedUser_WhenUserNotFound_ShouldThrowException() {
+    void givenAuthenticatedUserNotFound_whenGetAuthenticatedUser_thenThrowsUserNotFoundException() {
         // Arrange
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn("nonexistent@example.com");
