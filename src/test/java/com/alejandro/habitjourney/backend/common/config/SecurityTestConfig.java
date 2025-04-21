@@ -1,5 +1,8 @@
 package com.alejandro.habitjourney.backend.common.config;
 
+import com.alejandro.habitjourney.backend.common.exception.GlobalExceptionHandler;
+import com.alejandro.habitjourney.backend.user.controller.UserController;
+import com.alejandro.habitjourney.backend.user.service.UserService;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,7 +19,10 @@ public class SecurityTestConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/users/**").authenticated()
+                        .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
         // Importante: desactivar el filtro JWT aquí
@@ -25,5 +31,15 @@ public class SecurityTestConfig {
         }, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public GlobalExceptionHandler globalExceptionHandler() {
+        return new GlobalExceptionHandler();
+    }
+
+    @Bean
+    public UserController userController(UserService userService) {
+        return new UserController(userService);
     }
 }

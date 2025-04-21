@@ -2,7 +2,6 @@ package com.alejandro.habitjourney.backend.auth.controller;
 
 import com.alejandro.habitjourney.backend.auth.dto.*;
 import com.alejandro.habitjourney.backend.auth.service.AuthService;
-import com.alejandro.habitjourney.backend.common.config.SecurityConfig;
 import com.alejandro.habitjourney.backend.common.config.SecurityTestConfig;
 import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
 import com.alejandro.habitjourney.backend.common.exception.*;
@@ -12,26 +11,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
 @Import({SecurityTestConfig.class})
