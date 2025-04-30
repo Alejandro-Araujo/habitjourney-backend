@@ -56,6 +56,6 @@ public class TestDataFactory {
     }
 
     public static UserDTO createUpdatedUserDTO() {
-        return new UserDTO(1L, "Updated Name", "test@example.com");
+        return new UserDTO(1L, "Updated Name", "updated@example.com");
     }
 }

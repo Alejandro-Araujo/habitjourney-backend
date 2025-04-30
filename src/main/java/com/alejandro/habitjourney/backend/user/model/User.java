@@ -6,7 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
+/**
+ * Entidad de dominio que representa un usuario en el sistema.
+ * Mapea a la tabla "users" en la base de datos y contiene la información principal del usuario.
+ */
 @Entity
 @Table(name= "users")
 @Data
@@ -28,5 +33,5 @@ public class User {
     private String passwordHash;
 
     @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 }

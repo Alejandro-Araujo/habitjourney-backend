@@ -2,10 +2,13 @@ package com.alejandro.habitjourney.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
-@SpringBootApplication
-@ComponentScan("com.alejandro.habitjourney.backend.user.mapper")
+
+@SpringBootApplication(exclude = {
+		UserDetailsServiceAutoConfiguration.class,
+})
+
 public class HabitjourneyBackendApplication {
 
 	public static void main(String[] args) {

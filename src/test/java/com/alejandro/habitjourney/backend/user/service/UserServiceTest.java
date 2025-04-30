@@ -1,10 +1,8 @@
 package com.alejandro.habitjourney.backend.user.service;
 
-import com.alejandro.habitjourney.backend.common.exception.InvalidCredentialsException;
+import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
 import com.alejandro.habitjourney.backend.common.exception.UserNotFoundException;
-import com.alejandro.habitjourney.backend.auth.dto.RegisterRequestDTO;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
-import com.alejandro.habitjourney.backend.user.mapper.UserMapper;
 import com.alejandro.habitjourney.backend.user.model.User;
 import com.alejandro.habitjourney.backend.user.repository.UserRepository;
 import com.alejandro.habitjourney.backend.common.util.TestDataFactory;
@@ -16,6 +14,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Arrays;
@@ -42,9 +41,6 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private UserMapper userMapper;
-
     @InjectMocks
     private UserService userService;
 
@@ -52,47 +48,46 @@ class UserServiceTest {
     private ArgumentCaptor<User> userCaptor;
 
     private User testUser;
-    private UserDTO testUserDTO;
-    private RegisterRequestDTO testRegisterDTO;
 
     @BeforeEach
     void setUp() {
-        // Arrange - Usar TestDataFactory
+        // Arrange
         testUser = TestDataFactory.createTestUser();
-        testUserDTO = TestDataFactory.createTestUserDTO();
-        testRegisterDTO = TestDataFactory.createValidRegisterRequest();
     }
 
     @Test
-    void givenUsersExist_whenGetAllUsers_thenReturnsListOfUserDTOs() {
+    void givenUsersExist_whenGetAllUsers_thenReturnsListOfUserEntities() {
         // Arrange
-        List<User> users = Arrays.asList(testUser);
+        List<User> users = Arrays.asList(testUser, TestDataFactory.createTestUser());
         when(userRepository.findAll()).thenReturn(users);
-        when(userMapper.userToUserDTO(testUser)).thenReturn(testUserDTO);
 
         // Act
-        List<UserDTO> result = userService.getAllUsers();
+        List<User> result = userService.getAllUsers();
 
         // Assert
-        assertEquals(1, result.size());
-        assertEquals(testUserDTO, result.get(0));
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(users.get(0).getId(), result.get(0).getId());
+        assertEquals(users.get(1).getEmail(), result.get(1).getEmail());
+
         verify(userRepository).findAll();
-        verify(userMapper).userToUserDTO(testUser);
     }
 
     @Test
     void givenExistingUserId_whenGetUserById_thenReturnsUserDTO() {
         // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userMapper.userToUserDTO(testUser)).thenReturn(testUserDTO);
 
         // Act
-        UserDTO result = userService.getUserById(1L);
+        User result = userService.getUserById(1L);
 
         // Assert
-        assertEquals(testUserDTO, result);
+        assertNotNull(result);
+        assertEquals(testUser.getId(), result.getId());
+        assertEquals(testUser.getName(), result.getName());
+        assertEquals(testUser.getEmail(), result.getEmail());
+
         verify(userRepository).findById(1L);
-        verify(userMapper).userToUserDTO(testUser);
     }
 
     @Test
@@ -105,35 +100,39 @@ class UserServiceTest {
             userService.getUserById(999L);
         });
 
-        assertEquals("Usuario no encontrado", exception.getMessage());
+        assertEquals(ErrorMessages.USER_NOT_FOUND, exception.getMessage());
         verify(userRepository).findById(999L);
+        verifyNoMoreInteractions(userRepository);
     }
 
     @Test
-    void givenExistingUserAndValidUpdateData_whenUpdateUser_thenUpdatesUserAndReturnsUserDTO() {
+    void givenExistingUserAndValidUpdateData_whenUpdateUser_thenUpdatesUserAndReturnsUpdatedUserEntity() {
         // Arrange
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userRepository.save(userCaptor.capture())).thenReturn(testUser);
-        when(userMapper.userToUserDTO(any(User.class))).thenReturn(testUserDTO);
-
-        // Modificar DTO para actualización
         UserDTO updateDTO = TestDataFactory.createUpdatedUserDTO();
 
+        when(userRepository.findById(eq(testUser.getId()))).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByEmail(updateDTO.getEmail())).thenReturn(false); // Asegúrate de mockear esto si tu lógica lo usa
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
         // Act
-        UserDTO result = userService.updateUser(1L, updateDTO);
+        User result = userService.updateUser(testUser.getId(), updateDTO);
 
         // Assert
         assertNotNull(result);
-        assertEquals(testUserDTO, result);
-        verify(userRepository).findById(1L);
-        verify(userRepository).save(any(User.class));
-        verify(userMapper).userToUserDTO(any(User.class));
+        assertSame(testUser, result);
+        assertEquals(updateDTO.getName(), result.getName());
+        assertEquals(updateDTO.getEmail(), result.getEmail());
+        assertEquals("hashedPassword", result.getPasswordHash());
+
+        // Verify
+        verify(userRepository).findById(eq(testUser.getId()));
+        verify(userRepository).save(userCaptor.capture());
 
         // Verificar los detalles del usuario actualizado guardado
         User savedUser = userCaptor.getValue();
         assertEquals(updateDTO.getName(), savedUser.getName());
         assertEquals(updateDTO.getEmail(), savedUser.getEmail());
-        assertEquals("hashedPassword", savedUser.getPasswordHash()); // Aseguramos que la contraseña NO se modificó
+        assertEquals("hashedPassword", savedUser.getPasswordHash());
     }
 
     @Test
@@ -143,12 +142,13 @@ class UserServiceTest {
 
         // Act & Assert
         UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
-            userService.updateUser(999L, testUserDTO);
+            userService.updateUser(999L, TestDataFactory.createUpdatedUserDTO());
         });
 
-        assertEquals("Usuario no encontrado", exception.getMessage());
+        assertEquals(ErrorMessages.USER_NOT_FOUND, exception.getMessage());
         verify(userRepository).findById(999L);
-        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository).findById(999L);
+        verifyNoMoreInteractions(userRepository);
     }
 
     @Test
@@ -175,7 +175,7 @@ class UserServiceTest {
             userService.deleteUser(999L);
         });
 
-        assertEquals("Usuario no encontrado", exception.getMessage());
+        assertEquals(ErrorMessages.USER_NOT_FOUND, exception.getMessage());
         verify(userRepository).existsById(999L);
         verify(userRepository, never()).deleteById(anyLong());
     }
@@ -185,30 +185,30 @@ class UserServiceTest {
         // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(eq("currentPassword"), eq("hashedPassword"))).thenReturn(true);
-        when(passwordEncoder.encode(eq("NewPassword123!"))).thenReturn("newEncodedPassword");
+        when(passwordEncoder.encode(eq("newValidPassword123!"))).thenReturn("newEncodedPassword");
 
         // Act
-        userService.changePassword(1L, "currentPassword", "NewPassword123!");
+        userService.changePassword(1L, "currentPassword", "newValidPassword123!");
 
         // Assert
         verify(userRepository).findById(1L);
         verify(passwordEncoder).matches(eq("currentPassword"), eq("hashedPassword"));
-        verify(passwordEncoder).encode(eq("NewPassword123!"));
+        verify(passwordEncoder).encode(eq("newValidPassword123!"));
         verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void givenExistingUserAndIncorrectCurrentPassword_whenChangePassword_thenThrowsInvalidCredentialsException() {
+    void givenExistingUserAndIncorrectCurrentPassword_whenChangePassword_thenThrowsBadCredentialsException() {
         // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         // Act & Assert
-        InvalidCredentialsException exception = assertThrows(InvalidCredentialsException.class, () -> {
-            userService.changePassword(1L, "wrongPassword", "NewPassword123!");
+        BadCredentialsException exception = assertThrows(BadCredentialsException.class, () -> {
+            userService.changePassword(1L, "wrongPassword", "newValidPassword123!");
         });
 
-        assertEquals("La contraseña actual es incorrecta", exception.getMessage());
+        assertEquals(ErrorMessages.CURRENT_PASSWORD_INCORRECT, exception.getMessage());
         verify(userRepository).findById(1L);
         verify(passwordEncoder).matches("wrongPassword", testUser.getPasswordHash());
         verify(userRepository, never()).save(any(User.class));
