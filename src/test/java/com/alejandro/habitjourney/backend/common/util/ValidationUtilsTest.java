@@ -1,5 +1,6 @@
 package com.alejandro.habitjourney.backend.common.util;
 
+import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,7 +16,7 @@ class ValidationUtilsTest {
 
     @Test
     void validatePassword_WhenNull_ShouldReturnErrorMessage() {
-        assertEquals("La contraseña no puede ser nula", ValidationUtils.validatePassword(null));
+        assertEquals(ErrorMessages.VALIDATION_PASSWORD_NULL, ValidationUtils.validatePassword(null));
     }
 
     @Test
@@ -31,22 +32,22 @@ class ValidationUtilsTest {
 
     @Test
     void validatePassword_WhenMissingUppercase_ShouldReturnErrorMessage() {
-        assertEquals("La contraseña debe contener al menos una mayúscula", ValidationUtils.validatePassword("valid1password!"));
+        assertEquals(ErrorMessages.VALIDATION_PASSWORD_UPPERCASE, ValidationUtils.validatePassword("valid1password!"));
     }
 
     @Test
     void validatePassword_WhenMissingLowercase_ShouldReturnErrorMessage() {
-        assertEquals("La contraseña debe contener al menos una minúscula", ValidationUtils.validatePassword("VALID1PASSWORD!"));
+        assertEquals(ErrorMessages.VALIDATION_PASSWORD_LOWERCASE, ValidationUtils.validatePassword("VALID1PASSWORD!"));
     }
 
     @Test
     void validatePassword_WhenMissingDigit_ShouldReturnErrorMessage() {
-        assertEquals("La contraseña debe contener al menos un dígito", ValidationUtils.validatePassword("ValidPassword!"));
+        assertEquals(ErrorMessages.VALIDATION_PASSWORD_DIGIT, ValidationUtils.validatePassword("ValidPassword!"));
     }
 
     @Test
     void validatePassword_WhenMissingSpecialChar_ShouldReturnErrorMessage() {
-        assertEquals("La contraseña debe contener al menos un carácter especial", ValidationUtils.validatePassword("Valid123Password"));
+        assertEquals(ErrorMessages.VALIDATION_PASSWORD_SPECIAL_CHAR, ValidationUtils.validatePassword("Valid123Password"));
     }
 
     // ---- EMAIL ----
@@ -57,17 +58,17 @@ class ValidationUtilsTest {
 
     @Test
     void validateEmail_WhenNull_ShouldReturnErrorMessage() {
-        assertEquals("El email no puede estar vacío", ValidationUtils.validateEmail(null));
+        assertEquals(ErrorMessages.VALIDATION_EMAIL_EMPTY, ValidationUtils.validateEmail(null));
     }
 
     @Test
     void validateEmail_WhenEmpty_ShouldReturnErrorMessage() {
-        assertEquals("El email no puede estar vacío", ValidationUtils.validateEmail(""));
+        assertEquals(ErrorMessages.VALIDATION_EMAIL_EMPTY, ValidationUtils.validateEmail(""));
     }
 
     @Test
     void validateEmail_WhenInvalidFormat_ShouldReturnErrorMessage() {
-        assertEquals("El formato del email no es válido", ValidationUtils.validateEmail("invalid-email"));
+        assertEquals(ErrorMessages.VALIDATION_EMAIL_FORMAT, ValidationUtils.validateEmail("invalid-email"));
     }
 
     // ---- NAME ----
@@ -78,12 +79,12 @@ class ValidationUtilsTest {
 
     @Test
     void validateName_WhenNull_ShouldReturnErrorMessage() {
-        assertEquals("El nombre no puede estar vacío", ValidationUtils.validateName(null));
+        assertEquals(ErrorMessages.VALIDATION_NAME_EMPTY, ValidationUtils.validateName(null));
     }
 
     @Test
     void validateName_WhenEmpty_ShouldReturnErrorMessage() {
-        assertEquals("El nombre no puede estar vacío", ValidationUtils.validateName("   "));
+        assertEquals(ErrorMessages.VALIDATION_NAME_EMPTY, ValidationUtils.validateName("   "));
     }
 
     @Test
