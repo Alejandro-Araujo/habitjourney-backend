@@ -25,6 +25,9 @@ jobs:
 
       - name: Build and Test
         run: mvn -B clean verify
+        env:
+          JWT_SECRET: "test-secret-key-1234567890"
+          JWT_EXPIRATION: "86400000"
 
       - name: Generate Surefire Test Reports
         run: mvn surefire-report:report
