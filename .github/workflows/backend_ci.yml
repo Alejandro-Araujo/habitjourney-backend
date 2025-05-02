@@ -25,6 +25,9 @@ jobs:
 
       - name: Build and Test
         run: mvn -B clean verify
+        env:
+          JWT_SECRET: "di12/E/fCZGucJMwOmRg+woAZQqMY3qjfmWGZUGwdqw="
+          JWT_EXPIRATION: "86400000"
 
       - name: Generate Surefire Test Reports
         run: mvn surefire-report:report

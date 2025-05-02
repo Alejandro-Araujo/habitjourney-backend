@@ -2,16 +2,24 @@ package com.alejandro.habitjourney.backend.auth.controller;
 
 import com.alejandro.habitjourney.backend.auth.dto.*;
 import com.alejandro.habitjourney.backend.auth.service.AuthService;
+import com.alejandro.habitjourney.backend.auth.service.AuthService.LoginResult;
 import com.alejandro.habitjourney.backend.common.config.SecurityTestConfig;
+import com.alejandro.habitjourney.backend.common.exception.TestExceptionConfig;
 import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
+import com.alejandro.habitjourney.backend.common.constant.SuccessMessages;
 import com.alejandro.habitjourney.backend.common.exception.*;
 import com.alejandro.habitjourney.backend.common.config.TestConfig;
+import com.alejandro.habitjourney.backend.common.security.JwtAuthenticationFilter;
 import com.alejandro.habitjourney.backend.common.util.TestDataFactory;
 import com.alejandro.habitjourney.backend.user.dto.UserDTO;
+import com.alejandro.habitjourney.backend.user.mapper.UserMapper;
+import com.alejandro.habitjourney.backend.user.model.User;
+import com.alejandro.habitjourney.backend.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -32,8 +40,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * para los endpoints de autenticación (registro y login).
  * Configura un contexto mínimo de Spring MVC para las pruebas.
  */
-@ContextConfiguration(classes = {SecurityTestConfig.class, AuthControllerTestConfig.class})
+@ContextConfiguration(classes = {
+        SecurityTestConfig.class,
+        AuthControllerTestConfig.class,
+        TestExceptionConfig.class
+})
 @WebMvcTest
+@AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest extends TestConfig {
 
     @Autowired
@@ -45,104 +58,60 @@ class AuthControllerTest extends TestConfig {
     @MockitoBean
     private AuthService authService;
 
+    @MockitoBean
+    private UserMapper userMapper;
+
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
+
     private RegisterRequestDTO validRegisterRequest;
     private LoginRequestDTO validLoginRequest;
+    private User testUser;
     private UserDTO testUserDTO;
-    private RegisterResponseDTO registerResponseDTO;
-    private LoginResponseDTO loginResponseDTO;
 
     @BeforeEach
     void setUp() {
-        // Arrange - Usar TestDataFactory
+        // Arrange
         validRegisterRequest = TestDataFactory.createValidRegisterRequest();
         validLoginRequest = TestDataFactory.createValidLoginRequest();
+        testUser = TestDataFactory.createTestUser();
         testUserDTO = TestDataFactory.createTestUserDTO();
-
-        registerResponseDTO = new RegisterResponseDTO("Usuario registrado con éxito", testUserDTO);
-        loginResponseDTO = new LoginResponseDTO("Login exitoso", "jwt-token", testUserDTO);
     }
 
     @Test
     void givenValidRegisterRequest_whenRegister_thenReturnsCreated() throws Exception {
         // Arrange
-        when(authService.registerUser(any(RegisterRequestDTO.class))).thenReturn(registerResponseDTO);
+        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(testUser);
+        when(userMapper.userToUserDTO(testUser)).thenReturn(testUserDTO);
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.message").value("Usuario registrado con éxito"))
-                .andExpect(jsonPath("$.user.id").value(1))
-                .andExpect(jsonPath("$.user.name").value("Test User"))
-                .andExpect(jsonPath("$.user.email").value("test@example.com"));
+                .andExpect(jsonPath("$.message").value(SuccessMessages.USER_REGISTERED_SUCCESS))
+                .andExpect(jsonPath("$.user.id").value(testUserDTO.getId()))
+                .andExpect(jsonPath("$.user.name").value(testUserDTO.getName()))
+                .andExpect(jsonPath("$.user.email").value(testUserDTO.getEmail()));
     }
 
     @Test
     void givenExistingEmail_whenRegister_thenReturnsBadRequest() throws Exception {
         // Arrange
-        when(authService.registerUser(any(RegisterRequestDTO.class)))
+        when(authService.register(any(RegisterRequestDTO.class)))
                 .thenThrow(new EmailAlreadyExistsException(ErrorMessages.EMAIL_EXISTS));
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Registro inválido"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.title").value(ErrorMessages.TITLE_CONFLICT))
                 .andExpect(jsonPath("$.detail").value(ErrorMessages.EMAIL_EXISTS))
-                .andExpect(jsonPath("$.timestamp").exists());
-    }
-
-    @Test
-    void givenInvalidPassword_whenRegister_thenReturnsBadRequest() throws Exception {
-        // Arrange
-        when(authService.registerUser(any(RegisterRequestDTO.class)))
-                .thenThrow(new InvalidPasswordException(ErrorMessages.INVALID_PASSWORD));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRegisterRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Contraseña inválida"))
-                .andExpect(jsonPath("$.detail").value(ErrorMessages.INVALID_PASSWORD))
-                .andExpect(jsonPath("$.timestamp").exists());
-    }
-
-    @Test
-    void givenInvalidName_whenRegister_thenReturnsBadRequest() throws Exception {
-        // Arrange
-        when(authService.registerUser(any(RegisterRequestDTO.class)))
-                .thenThrow(new InvalidNameException(ErrorMessages.INVALID_NAME));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRegisterRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Nombre inválido"))
-                .andExpect(jsonPath("$.detail").value(ErrorMessages.INVALID_NAME))
-                .andExpect(jsonPath("$.timestamp").exists());
-    }
-
-    @Test
-    void givenInvalidEmail_whenRegister_thenReturnsBadRequest() throws Exception {
-        // Arrange
-        when(authService.registerUser(any(RegisterRequestDTO.class)))
-                .thenThrow(new InvalidCredentialsException("El email no es válido"));
-
-        // Act & Assert
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRegisterRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Credenciales inválidas"))
-                .andExpect(jsonPath("$.detail").value("El email no es válido"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
@@ -157,7 +126,7 @@ class AuthControllerTest extends TestConfig {
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Error de validación"))
+                .andExpect(jsonPath("$.title").value(ErrorMessages.TITLE_VALIDATION_ERROR))
                 .andExpect(jsonPath("$.detail").value(ErrorMessages.VALIDATION_FAILED))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.validationErrors").isArray())
@@ -167,25 +136,28 @@ class AuthControllerTest extends TestConfig {
     @Test
     void givenValidLoginRequest_whenLogin_thenReturnsOk() throws Exception {
         // Arrange
-        when(authService.authenticateUser(any(LoginRequestDTO.class))).thenReturn(loginResponseDTO);
+        LoginResult mockLoginResult = new LoginResult(testUser, "jwt-token");
+        when(userMapper.userToUserDTO(mockLoginResult.getUser())).thenReturn(testUserDTO);
+
+        when(authService.login(any(LoginRequestDTO.class))).thenReturn(mockLoginResult);
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Login exitoso"))
+                .andExpect(jsonPath("$.message").value(SuccessMessages.LOGIN_SUCCESS))
                 .andExpect(jsonPath("$.token").value("jwt-token"))
-                .andExpect(jsonPath("$.user.id").value(1))
-                .andExpect(jsonPath("$.user.name").value("Test User"))
-                .andExpect(jsonPath("$.user.email").value("test@example.com"));
+                .andExpect(jsonPath("$.user.id").value(testUserDTO.getId()))
+                .andExpect(jsonPath("$.user.name").value(testUserDTO.getName()))
+                .andExpect(jsonPath("$.user.email").value(testUserDTO.getEmail()));
     }
 
     @Test
     void givenWrongPassword_whenLogin_thenReturnsUnauthorized() throws Exception {
         // Arrange
-        when(authService.authenticateUser(any(LoginRequestDTO.class)))
-                .thenThrow(new BadCredentialsException("Credenciales inválidas"));
+        when(authService.login(any(LoginRequestDTO.class)))
+                .thenThrow(new BadCredentialsException(ErrorMessages.TITLE_UNAUTHORIZED));
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/login")
@@ -193,7 +165,7 @@ class AuthControllerTest extends TestConfig {
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.title").value("Credenciales inválidas"))
+                .andExpect(jsonPath("$.title").value(ErrorMessages.TITLE_UNAUTHORIZED))
                 .andExpect(jsonPath("$.detail").value(ErrorMessages.INVALID_CREDENTIALS))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
@@ -201,7 +173,7 @@ class AuthControllerTest extends TestConfig {
     @Test
     void givenNonExistentUser_whenLogin_thenReturnsNotFound() throws Exception {
         // Arrange
-        when(authService.authenticateUser(any(LoginRequestDTO.class)))
+        when(authService.login(any(LoginRequestDTO.class)))
                 .thenThrow(new UserNotFoundException(ErrorMessages.USER_NOT_FOUND));
 
         // Act & Assert
@@ -210,7 +182,7 @@ class AuthControllerTest extends TestConfig {
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.title").value("Usuario no encontrado"))
+                .andExpect(jsonPath("$.title").value(ErrorMessages.TITLE_RESOURCE_NOT_FOUND))
                 .andExpect(jsonPath("$.detail").value(ErrorMessages.USER_NOT_FOUND))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
@@ -226,7 +198,7 @@ class AuthControllerTest extends TestConfig {
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.title").value("Error de validación"))
+                .andExpect(jsonPath("$.title").value(ErrorMessages.TITLE_VALIDATION_ERROR))
                 .andExpect(jsonPath("$.detail").value(ErrorMessages.VALIDATION_FAILED))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.validationErrors").exists());

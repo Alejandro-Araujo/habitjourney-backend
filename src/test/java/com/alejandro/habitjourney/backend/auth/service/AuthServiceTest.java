@@ -1,16 +1,14 @@
 package com.alejandro.habitjourney.backend.auth.service;
 
 
+import com.alejandro.habitjourney.backend.auth.service.AuthService.LoginResult;
 import com.alejandro.habitjourney.backend.auth.dto.LoginRequestDTO;
-import com.alejandro.habitjourney.backend.auth.dto.LoginResponseDTO;
 import com.alejandro.habitjourney.backend.auth.dto.RegisterRequestDTO;
-import com.alejandro.habitjourney.backend.auth.dto.RegisterResponseDTO;
+import com.alejandro.habitjourney.backend.common.constant.ErrorMessages;
 import com.alejandro.habitjourney.backend.common.exception.*;
 import com.alejandro.habitjourney.backend.common.security.JwtUtil;
 import com.alejandro.habitjourney.backend.common.config.TestConfig;
 import com.alejandro.habitjourney.backend.common.util.TestDataFactory;
-import com.alejandro.habitjourney.backend.user.dto.UserDTO;
-import com.alejandro.habitjourney.backend.user.mapper.UserMapper;
 import com.alejandro.habitjourney.backend.user.model.User;
 import com.alejandro.habitjourney.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -58,9 +56,6 @@ class AuthServiceTest extends TestConfig {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private UserMapper userMapper;
-
-    @Mock
     private Authentication authentication;
 
     @Mock
@@ -75,7 +70,6 @@ class AuthServiceTest extends TestConfig {
     private RegisterRequestDTO validRegisterRequest;
     private LoginRequestDTO validLoginRequest;
     private User testUser;
-    private UserDTO testUserDTO;
 
     @BeforeEach
     void setUp() {
@@ -83,7 +77,6 @@ class AuthServiceTest extends TestConfig {
         validRegisterRequest = TestDataFactory.createValidRegisterRequest();
         validLoginRequest = TestDataFactory.createValidLoginRequest();
         testUser = TestDataFactory.createTestUser();
-        testUserDTO = TestDataFactory.createTestUserDTO();
     }
 
     @Test
@@ -92,18 +85,15 @@ class AuthServiceTest extends TestConfig {
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("hashedPassword");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(userMapper.userToUserDTO(any(User.class))).thenReturn(testUserDTO);
 
         // Act
-        RegisterResponseDTO result = authService.registerUser(validRegisterRequest);
+        User result = authService.register(validRegisterRequest);
 
         // Assert
         assertNotNull(result);
-        assertEquals("Usuario registrado con éxito", result.getMessage());
-        assertNotNull(result.getUser());
-        assertEquals(testUserDTO.getId(), result.getUser().getId());
-        assertEquals(testUserDTO.getName(), result.getUser().getName());
-        assertEquals(testUserDTO.getEmail(), result.getUser().getEmail());
+        assertEquals(testUser.getId(), result.getId());
+        assertEquals(testUser.getName(), result.getName());
+        assertEquals(testUser.getEmail(), result.getEmail());
 
         verify(userRepository).existsByEmail(validRegisterRequest.getEmail());
         verify(passwordEncoder).encode(validRegisterRequest.getPassword());
@@ -123,10 +113,10 @@ class AuthServiceTest extends TestConfig {
         // Act & Assert
         EmailAlreadyExistsException exception = assertThrows(
                 EmailAlreadyExistsException.class,
-                () -> authService.registerUser(validRegisterRequest)
+                () -> authService.register(validRegisterRequest)
         );
 
-        assertEquals("El email ya está en uso", exception.getMessage());
+        assertEquals(ErrorMessages.EMAIL_EXISTS, exception.getMessage());
         verify(userRepository).existsByEmail(validRegisterRequest.getEmail());
         verify(userRepository, never()).save(any(User.class));
     }
@@ -140,12 +130,12 @@ class AuthServiceTest extends TestConfig {
         invalidEmailRequest.setPassword("Valid1Password!");
 
         // Act & Assert
-        InvalidCredentialsException exception = assertThrows(
-                InvalidCredentialsException.class,
-                () -> authService.registerUser(invalidEmailRequest)
+        InvalidEmailFormatException exception = assertThrows(
+                InvalidEmailFormatException.class,
+                () -> authService.register(invalidEmailRequest)
         );
 
-        assertEquals("El formato del email no es válido", exception.getMessage());
+        assertEquals(ErrorMessages.VALIDATION_EMAIL_FORMAT, exception.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -160,7 +150,7 @@ class AuthServiceTest extends TestConfig {
         // Act & Assert
         InvalidPasswordException exception = assertThrows(
                 InvalidPasswordException.class,
-                () -> authService.registerUser(invalidPasswordRequest)
+                () -> authService.register(invalidPasswordRequest)
         );
 
         assertEquals("La contraseña debe tener al menos 6 caracteres", exception.getMessage());
@@ -178,7 +168,7 @@ class AuthServiceTest extends TestConfig {
         // Act & Assert
         InvalidNameException exception = assertThrows(
                 InvalidNameException.class,
-                () -> authService.registerUser(emptyNameRequest)
+                () -> authService.register(emptyNameRequest)
         );
 
         assertEquals("El nombre no puede estar vacío", exception.getMessage());
@@ -186,23 +176,23 @@ class AuthServiceTest extends TestConfig {
     }
 
     @Test
-    void givenValidLoginRequest_whenAuthenticateUser_thenReturnsTokenAndUser() {
+    void givenValidLoginRequest_whenLogin_thenReturnsTokenAndUser() {
         // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByEmail(validLoginRequest.getEmail()))
                 .thenReturn(Optional.of(testUser));
         when(jwtUtil.generateAccessToken(authentication)).thenReturn("jwt-token");
-        when(userMapper.userToUserDTO(testUser)).thenReturn(testUserDTO);
 
         // Act
-        LoginResponseDTO result = authService.authenticateUser(validLoginRequest);
+        LoginResult result = authService.login(validLoginRequest);
 
         // Assert
         assertNotNull(result);
-        assertEquals("Login exitoso", result.getMessage());
+        assertNotNull(result.getUser());
+        assertEquals(testUser.getId(), result.getUser().getId());
+        assertEquals(testUser.getEmail(), result.getUser().getEmail());
         assertEquals("jwt-token", result.getToken());
-        assertEquals(testUserDTO, result.getUser());
 
         verify(authenticationManager).authenticate(
                 argThat(auth ->
@@ -212,28 +202,28 @@ class AuthServiceTest extends TestConfig {
         );
         verify(userRepository).findByEmail(validLoginRequest.getEmail());
         verify(jwtUtil).generateAccessToken(authentication);
-        verify(userMapper).userToUserDTO(testUser);
     }
 
     @Test
-    void givenInvalidCredentials_whenAuthenticateUser_thenThrowsBadCredentialsException() {
+    void givenInvalidCredentials_whenLogin_thenThrowsBadCredentialsException() {
         // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("Credenciales inválidas"));
+                .thenThrow(new BadCredentialsException(ErrorMessages.INVALID_CREDENTIALS));
 
         // Act & Assert
         BadCredentialsException exception = assertThrows(
                 BadCredentialsException.class,
-                () -> authService.authenticateUser(validLoginRequest)
+                () -> authService.login(validLoginRequest)
         );
 
-        assertEquals("Credenciales inválidas", exception.getMessage());
+        assertEquals(ErrorMessages.INVALID_CREDENTIALS, exception.getMessage());
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository, never()).findByEmail(anyString());
+        verify(jwtUtil, never()).generateAccessToken(any());
     }
 
     @Test
-    void givenLoginRequestForNonExistentUser_whenAuthenticateUser_thenThrowsUserNotFoundException() {
+    void givenLoginRequestForNonExistentUser_whenLogin_thenThrowsUserNotFoundException() {
         // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
@@ -243,12 +233,13 @@ class AuthServiceTest extends TestConfig {
         // Act & Assert
         UserNotFoundException exception = assertThrows(
                 UserNotFoundException.class,
-                () -> authService.authenticateUser(validLoginRequest)
+                () -> authService.login(validLoginRequest)
         );
 
-        assertEquals("Usuario no encontrado", exception.getMessage());
+        assertEquals(ErrorMessages.USER_NOT_FOUND, exception.getMessage());
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository).findByEmail(validLoginRequest.getEmail());
+        verify(jwtUtil, never()).generateAccessToken(any());
     }
 
     @Test
@@ -258,7 +249,7 @@ class AuthServiceTest extends TestConfig {
         when(authentication.getName()).thenReturn("test@example.com");
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
-        // Configurar SecurityContextHolder para usar nuestro mock
+        // Configurar SecurityContextHolder
         SecurityContextHolder.setContext(securityContext);
 
         // Act
@@ -282,7 +273,7 @@ class AuthServiceTest extends TestConfig {
         when(authentication.getName()).thenReturn("nonexistent@example.com");
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
-        // Configurar SecurityContextHolder para usar nuestro mock
+        // Configurar SecurityContextHolder
         SecurityContextHolder.setContext(securityContext);
 
         // Act & Assert
@@ -291,7 +282,7 @@ class AuthServiceTest extends TestConfig {
                 () -> authService.getAuthenticatedUser()
         );
 
-        assertEquals("Usuario no encontrado", exception.getMessage());
+        assertEquals(ErrorMessages.USER_NOT_FOUND, exception.getMessage());
         verify(securityContext).getAuthentication();
         verify(authentication).getName();
         verify(userRepository).findByEmail("nonexistent@example.com");
