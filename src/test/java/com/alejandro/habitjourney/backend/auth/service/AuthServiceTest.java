@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+
 /**
  * Pruebas unitarias para la clase de servicio {@link AuthService}.
  * Se enfoca en verificar la lógica de negocio relacionada con
@@ -178,6 +179,9 @@ class AuthServiceTest extends TestConfig {
     @Test
     void givenValidLoginRequest_whenLogin_thenReturnsTokenAndUser() {
         // Arrange
+        // --- CAMBIO CLAVE: Primero simulamos que el usuario existe ---
+        when(userRepository.existsByEmail(validLoginRequest.getEmail())).thenReturn(true);
+
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(authentication);
         when(userRepository.findByEmail(validLoginRequest.getEmail()))
@@ -194,6 +198,8 @@ class AuthServiceTest extends TestConfig {
         assertEquals(testUser.getEmail(), result.getUser().getEmail());
         assertEquals("jwt-token", result.getToken());
 
+        // Verificamos la nueva llamada
+        verify(userRepository).existsByEmail(validLoginRequest.getEmail());
         verify(authenticationManager).authenticate(
                 argThat(auth ->
                         validLoginRequest.getEmail().equals(auth.getPrincipal()) &&
@@ -207,6 +213,9 @@ class AuthServiceTest extends TestConfig {
     @Test
     void givenInvalidCredentials_whenLogin_thenThrowsBadCredentialsException() {
         // Arrange
+        // --- CAMBIO CLAVE: Simulamos que el usuario existe para pasar la primera validación ---
+        when(userRepository.existsByEmail(validLoginRequest.getEmail())).thenReturn(true);
+
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new BadCredentialsException(ErrorMessages.INVALID_CREDENTIALS));
 
@@ -217,6 +226,7 @@ class AuthServiceTest extends TestConfig {
         );
 
         assertEquals(ErrorMessages.INVALID_CREDENTIALS, exception.getMessage());
+        verify(userRepository).existsByEmail(validLoginRequest.getEmail()); // Se verifica la llamada
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository, never()).findByEmail(anyString());
         verify(jwtUtil, never()).generateAccessToken(any());
@@ -225,10 +235,8 @@ class AuthServiceTest extends TestConfig {
     @Test
     void givenLoginRequestForNonExistentUser_whenLogin_thenThrowsUserNotFoundException() {
         // Arrange
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        when(userRepository.findByEmail(validLoginRequest.getEmail()))
-                .thenReturn(Optional.empty());
+        // --- ESTE ES EL TEST PARA LA NUEVA LÓGICA ---
+        when(userRepository.existsByEmail(validLoginRequest.getEmail())).thenReturn(false);
 
         // Act & Assert
         UserNotFoundException exception = assertThrows(
@@ -237,8 +245,9 @@ class AuthServiceTest extends TestConfig {
         );
 
         assertEquals(ErrorMessages.USER_NOT_FOUND, exception.getMessage());
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-        verify(userRepository).findByEmail(validLoginRequest.getEmail());
+        // Verificamos que se queda en la primera validación y no sigue
+        verify(userRepository).existsByEmail(validLoginRequest.getEmail());
+        verify(authenticationManager, never()).authenticate(any());
         verify(jwtUtil, never()).generateAccessToken(any());
     }
 
