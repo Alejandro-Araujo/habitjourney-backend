@@ -1,4 +1,7 @@
-FROM maven:3.9-openjdk-21-slim AS build
+FROM eclipse-temurin:21-jdk AS build
+
+# Instalar Maven
+RUN apt-get update && apt-get install -y maven
 
 WORKDIR /app
 
@@ -17,7 +20,7 @@ COPY src src
 RUN mvn clean package -DskipTests
 
 # Etapa de ejecución
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
