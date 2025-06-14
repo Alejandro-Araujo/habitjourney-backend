@@ -1,4 +1,4 @@
-FROM maven:3.9-openjdk-21 AS build
+FROM maven:3.9-openjdk-21-slim AS build
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
 
-# Descargar dependencias (se cachea si no cambia el pom.xml)
+# Descargar dependencias
 RUN mvn dependency:go-offline -B
 
 # Copiar código fuente
@@ -28,4 +28,4 @@ COPY --from=build /app/target/habitjourney-backend-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 10000
 
 # Ejecutar la aplicación
-CMD ["java", "-Dserver.port=${PORT:8080}", "-jar", "app.jar"]
+CMD ["java", "-jar", "app.jar"]
