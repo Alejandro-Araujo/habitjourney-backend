@@ -98,6 +98,10 @@ public class AuthService {
     public LoginResult login(LoginRequestDTO loginRequestDTO) {
         log.debug("Iniciando proceso de login para: {}", loginRequestDTO.getEmail());
 
+        boolean exists = userRepository.existsByEmail(loginRequestDTO.getEmail());
+        if (!exists) {
+            throw new UserNotFoundException(ErrorMessages.USER_NOT_FOUND);
+        }
         // Autenticar usuario
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(), loginRequestDTO.getPassword())
