@@ -1,5 +1,10 @@
 # HabitJourney Backend
 
+![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green?style=for-the-badge&logo=springboot)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue?style=for-the-badge&logo=postgresql)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
+
 API REST desarrollada con Spring Boot para la aplicación HabitJourney, proporcionando servicios de autenticación y gestión de usuarios.
 
 ## 🚀 Tecnologías
