@@ -1,63 +1,91 @@
 # HabitJourney Backend
 
-API REST desarrollada con Spring Boot para la aplicación HabitJourney, proporcionando servicios de autenticación y gestión de usuarios.
+![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green?style=for-the-badge&logo=springboot)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue?style=for-the-badge&logo=postgresql)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
-## 🚀 Tecnologías
+[Leer en español](README.es.md)
 
-- **Java 21**
-- **Spring Boot 3.x**
-- **Spring Security + JWT**
-- **PostgreSQL**
-- **Maven**
-- **Docker & Docker Compose** (opcional)
-- **Swagger/OpenAPI** para documentación
+A REST API developed with Java and Spring Boot for user management and authentication.
 
-## 📋 Requisitos Previos
+---
 
-- JDK 21 o superior
-- Maven 3.8+
-- PostgreSQL 14+
-- Git
+## 📖 About This Project
 
-## 🔧 Instalación y Configuración
+This backend was originally developed as the authentication and user management system for the **HabitJourney** Android app, as part of my Final Project for the DAM (Multi-Platform Application Development) vocational degree.
 
-### 1. Clonar el repositorio
+Later, as a technical improvement exercise, the client application was decoupled from this backend and migrated to **Firebase Authentication**.
 
+Therefore, this repository is maintained as a functional **Proof of Concept** that illustrates the creation of a REST API featuring:
+
+* Service-oriented architecture
+* User authentication based on JWT (JSON Web Tokens)
+* User lifecycle management (CRUD, password change)
+* Configuration for deployment in Docker containers
+
+## 📑 Table of Contents
+- [Technologies](#-technologies)
+- [Prerequisites](#-prerequisites)
+- [Setup and Installation](#-setup-and-installation)
+- [Docker](#-docker)
+- [API Documentation](#-api-documentation)
+- [Project Structure](#️-project-structure)
+- [Deployment](#-deployment)
+- [Security](#-security)
+- [Testing](#-testing)
+- [License](#-license)
+- [Contact](#-contact)
+
+## 🚀 Technologies
+
+* **Language & Framework:** Java 21, Spring Boot 3.x
+* **Security:** Spring Security, JWT
+* **Database:** PostgreSQL, Spring Data JPA
+* **Dependency Management:** Maven
+* **Containerization:** Docker & Docker Compose
+* **API Documentation:** Swagger (Springdoc OpenAPI)
+
+## 📋 Prerequisites
+
+* JDK 21 or higher
+* Maven 3.8+
+* PostgreSQL 14+
+* Git
+* Docker (Optional, recommended for the database)
+
+## 🔧 Setup and Installation
+
+### 1. Clone the repository
 ```bash
-git clone https://github.com/Alejandro-Araujo/habitjourney-backend.git
+git clone [https://github.com/Alejandro-Araujo/habitjourney-backend.git](https://github.com/Alejandro-Araujo/habitjourney-backend.git)
 cd habitjourney-backend
 ```
 
-### 2. Configurar la base de datos
+### 2. Set up the database
 
-#### Opción A: Usar Docker Compose (Recomendado)
-
-El proyecto incluye un `docker-compose.yml` con PostgreSQL preconfigurado:
+#### Option A: Docker Compose (Recommended)
+The project includes a docker-compose.yml file that sets up a PostgreSQL service.
 
 ```bash
-# Iniciar PostgreSQL con Docker Compose
+# Start the PostgreSQL container in the background
 docker-compose up -d
-
-# La BD estará disponible en localhost:5433
-# Database: habitjourney_backend
-# User: postgres
-# Password: postgres
 ```
 
-#### Opción B: PostgreSQL local
+The database will be available on localhost:5433.
 
-Si tienes PostgreSQL instalado localmente:
+#### Option B: Local PostgreSQL Instance
+If you prefer to use a local installation, create the database:
 
 ```sql
 CREATE DATABASE habitjourney_backend;
 ```
 
-### 3. Configurar variables de entorno
-
-Crear un archivo `.env.properties` en la raíz del proyecto:
+### 3.  Configure environment variables
+Create a .env.properties file in the project root from the env.properties.example file and adjust it with your configuration.
 
 ```properties
-# Database Configuration (para Docker Compose)
+# Database Configuration
 DB_HOST=localhost
 DB_PORT=5433
 DB_NAME=habitjourney_backend
@@ -65,56 +93,35 @@ DB_USERNAME=postgres
 DB_PASSWORD=postgres
 
 # JWT Configuration
-JWT_SECRET=tu_clave_secreta_muy_segura_de_al_menos_256_bits
+JWT_SECRET=a_very_secure_secret_key_for_local_development
 JWT_EXPIRATION=86400000
 
 # Server Configuration
 SERVER_PORT=8080
 ```
 
-### 4. Instalar dependencias y ejecutar
-
+### 4. Run the application
 ```bash
-# Instalar dependencias
+# Install dependencies
 mvn clean install
 
-# Ejecutar la aplicación
+# Run the application
 mvn spring-boot:run
 ```
 
-La aplicación estará disponible en `http://localhost:8080`
+The API will be available at http://localhost:8080.
 
 ## 🐳 Docker
 
-### Docker Compose (Solo PostgreSQL)
-
-El `docker-compose.yml` incluido levanta únicamente PostgreSQL:
+To run the entire application inside a Docker container (assuming the database is already running):
 
 ```bash
-# Iniciar PostgreSQL
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f
-
-# Detener
-docker-compose down
-
-# Detener y eliminar volúmenes (borra datos)
-docker-compose down -v
-```
-
-### Ejecutar la API con Docker
-
-Para ejecutar la API en un contenedor Docker local:
-
-```bash
-# Construir imagen
+# 1. Build the application's Docker image
 docker build -t habitjourney-backend .
 
-# Ejecutar conectando a PostgreSQL del docker-compose
-docker run -d -p 8080:8080 \
-  --network host \
+# 2. Run the API container
+docker run -p 8080:8080 \
+  --network="host" \
   -e DB_HOST=localhost \
   -e DB_PORT=5433 \
   -e DB_NAME=habitjourney_backend \
@@ -125,109 +132,96 @@ docker run -d -p 8080:8080 \
   habitjourney-backend
 ```
 
-**Nota:** El Dockerfile está optimizado para Render (expone puerto 10000), pero funciona perfectamente en local.
+**Note:** `--network="host"` is used to easily connect to the database running on the host machine's localhost.
 
-## 📚 Documentación API
+## 📚 API Documentation
 
-La documentación Swagger está disponible en:
-- **Local:** `http://localhost:8080/swagger-ui.html`
-- **Producción:** `https://habitjourney-backend.onrender.com/swagger-ui.html`
+The API documentation, generated with Swagger, is available at the following path once the application is running:
 
-### Endpoints principales
+**http://localhost:8080/swagger-ui.html**
 
-#### Autenticación
-- `POST /api/auth/register` - Registrar nuevo usuario
-- `POST /api/auth/login` - Iniciar sesión
+### Main Endpoints
 
-#### Usuario
-- `GET /api/users/me` - Obtener información del usuario actual
-- `PUT /api/users/me` - Actualizar información del usuario
-- `DELETE /api/users/me` - Eliminar cuenta
-- `POST /api/users/me/change-password` - Cambiar contraseña
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Registers a new user. |
+| POST | `/api/auth/login` | Authenticates a user and returns a JWT. |
+| GET | `/api/users/me` | Gets the authenticated user's data. |
+| PUT | `/api/users/me` | Updates the user's data. |
+| POST | `/api/users/me/change-password` | Allows the user to change their password. |
+| DELETE | `/api/users/me` | Deletes the user's account. |
+
+## 🏗️ Project Structure
+
+```
+src/main/java/backend/
+├── auth/          # Authentication logic (Controller, DTOs, Service)
+├── user/          # User management logic (Controller, Entity, Repo, Service)
+└── common/        # Cross-cutting components
+    ├── config/    # Spring configuration (Security, OpenAPI, etc.)
+    ├── exception/ # Global exception handlers
+    └── security/  # JWT implementation (Filters, Provider, etc.)
+```
+## 🚀 Deployment
+
+This project is configured for easy deployment to platforms like Render using Docker.
+
+### Live Demo (Render.com)
+
+An instance of this API is deployed on Render.
+
+- **Base URL:** `https://habitjourney-backend.onrender.com`
+- **API Docs:** `https://habitjourney-backend.onrender.com/swagger-ui.html`
+
+**Note:** This demo runs on Render's free tier. The service may take a moment to start if it has been inactive. Additionally, the associated database has a limited lifecycle and may not be permanently available.
+
+### Deploying Your Own Instance on Render
+
+You can deploy your own version of this API by following these steps:
+
+1. Fork this repository.
+2. Create an account on [Render.com](https://render.com).
+3. Create a new "Web Service" → connect it to your forked repository.
+4. Setup:
+    - Environment: `Docker`
+    - Build Command: `docker build -t habitjourney-backend .`
+    - Start Command: `docker run -p $PORT:8080 habitjourney-backend`
+5. Add the necessary environment variables (DB_HOST, JWT_SECRET, etc.). If you use Render's database, they will provide you with the DATABASE_URL.
+6. Deploy! Render will automatically detect the Dockerfile, build the image, and run it.
+
+## 🔐 Security
+
+The following security measures have been implemented:
+
+* **Authentication:** A system based on JSON Web Tokens (JWT) to protect endpoints.
+* **Password Hashing:** BCryptPasswordEncoder is used to securely store passwords.
+* **Input Validation:** DTOs (Data Transfer Objects) validate incoming data to prevent malformed inputs.
+* **CORS Configuration:** A Cross-Origin Resource Sharing policy has been configured to allow requests from specific origins.
 
 ## 🧪 Testing
 
-Ejecutar todos los tests:
+The project includes unit and integration tests to ensure the correct functionality of controllers and services.
+
+To run the test suite:
 
 ```bash
 mvn test
 ```
 
-Ejecutar con reporte de cobertura:
+To generate a coverage report (requires JaCoCo):
 
 ```bash
 mvn test jacoco:report
 ```
 
-## 🏗️ Estructura del Proyecto
+## 📝 License
 
-```
-src/main/java/backend/
-├── auth/                  # Autenticación y autorización
-├── user/                  # Gestión de usuarios
-├── common/               
-│   ├── config/           # Configuraciones (Security, Swagger, etc.)
-│   ├── exception/        # Excepciones personalizadas
-│   ├── security/         # JWT y filtros de seguridad
-│   └── util/            # Utilidades
-└── HabitjourneyBackendApplication.java
-```
+This project is distributed under the MIT License. See the LICENSE file for more details.
 
-## 🚀 Despliegue
+## 📞 Contact
 
-### Producción (Render.com)
+**Alejandro Araujo Fernández**
 
-El backend ya está desplegado y operativo en producción:
-
-- **URL Base:** `https://habitjourney-backend.onrender.com`
-- **API Docs:** `https://habitjourney-backend.onrender.com/swagger-ui.html`
-- **Base de datos:** PostgreSQL gestionado por Render
-
-### Desplegar tu propia instancia en Render
-
-1. Fork este repositorio
-2. Crear cuenta en [Render.com](https://render.com)
-3. Nuevo Web Service → Conectar repositorio GitHub
-4. Configurar:
-    - Environment: `Docker`
-    - Build Command: `docker build -t habitjourney-backend .`
-    - Start Command: `docker run -p $PORT:8080 habitjourney-backend`
-5. Añadir las variables de entorno necesarias
-6. Deploy automático en cada push a `main`
-
-## 🔐 Seguridad
-
-- Autenticación mediante JWT
-- Contraseñas hasheadas con BCrypt
-- Validación de entrada en todos los endpoints
-- CORS configurado para el cliente Android
-- Rate limiting implementado
-
-## 🔐 Seguridad
-
-- Autenticación mediante JWT
-- Contraseñas hasheadas con BCrypt
-- Validación de entrada en todos los endpoints
-- CORS configurado para el cliente Android
-- Rate limiting implementado
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
-
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
-
-## 👥 Autor
-
-- **[Alejandro Araujo Fernández]** - [GitHub](https://github.com/Alejandro-Araujo/habitjourney-backend)
-
-## 🙏 Agradecimientos
-
-- Proyecto desarrollado como Proyecto Final del FP del Desarrollo de Aplicaciones Multiplataforma (DAM) 2025
-- Inspirado en la necesidad de una app unificada de productividad personal
+* Email: jandroaraujo@gmail.com
+* LinkedIn: https://www.linkedin.com/in/alejandro-araujo-fernandez/
+* GitHub: https://github.com/Alejandro-Araujo
